@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Froggy Tafrihatul Wildan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background: linear-gradient(180deg, #56CCF2 0%, #2F80ED 100%);
+            touch-action: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Memastikan modal selalu pas di layar dan tidak terpotong */
+        .modal-container {
+            max-height: 90vh;
+            overflow-y: auto;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Styling Daun Teratai (Lily Pad) */
+        .lily-pad {
+            background-color: #4ade80;
+            box-shadow: 0 8px 0 #16a34a, 0 12px 10px rgba(0, 0, 0, 0.3);
+            border-radius: 50%;
+            width: 140px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #064e3b;
+            font-weight: 800;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s, background-color 0.2s;
+            text-align: center;
+            padding: 0 10px;
+            line-height: 1.1;
+        }
+
+        @media (max-width: 640px) {
+            .lily-pad { width: 120px; height: 55px; font-size: 0.85rem; }
+        }
+
+        .lily-pad:hover { background-color: #86efac; }
+        .lily-pad:active { transform: translateY(6px); box-shadow: 0 2px 0 #16a34a, 0 4px 5px rgba(0, 0, 0, 0.3); }
+        .lily-pad.correct { background-color: #fef08a !important; box-shadow: 0 8px 0 #ca8a04, 0 0 20px #fef08a !important; }
+        .lily-pad.wrong { background-color: #fca5a5 !important; box-shadow: 0 8px 0 #dc2626 !important; }
+
+        /* Katak */
+        #frog {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        /* Rumput di bawah (Lapis Belakang) */
+        .grass-bg {
+            position: absolute;
+            bottom: 0;
+            width: 120%;
+            left: -10%;
+            height: 12vh;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M0,100 L0,40 Q2,20 4,50 Q6,30 8,60 Q10,25 12,55 Q14,35 16,65 Q18,20 20,50 Q22,40 24,70 Q26,30 28,60 Q30,15 32,55 Q34,45 36,75 Q38,25 40,50 Q42,35 44,65 Q46,20 48,55 Q50,40 52,70 Q54,25 56,60 Q58,45 60,75 Q62,15 64,50 Q66,35 68,65 Q70,20 72,55 Q74,40 76,70 Q78,25 80,60 Q82,45 84,75 Q86,15 88,50 Q90,35 92,65 Q94,20 96,55 Q98,40 100,70 L100,100 Z' fill='%2316a34a' opacity='0.8'/%3E%3Cpath d='M0,100 L0,60 Q3,40 5,70 Q7,50 9,80 Q11,45 13,75 Q15,55 17,85 Q19,40 21,70 Q23,60 25,90 Q27,50 29,80 Q31,35 33,75 Q35,65 37,95 Q39,45 41,70 Q43,55 45,85 Q47,40 49,75 Q51,60 53,90 Q55,45 57,80 Q59,65 61,95 Q63,35 65,70 Q67,55 69,85 Q71,40 73,75 Q75,60 77,90 Q79,45 81,80 Q83,65 85,95 Q87,35 89,70 Q91,55 93,85 Q95,40 97,75 Q99,60 100,90 L100,100 Z' fill='%2322c55e'/%3E%3C/svg%3E");
+            background-size: 80px 100%;
+            background-repeat: repeat-x;
+            background-position: bottom;
+            z-index: 40;
+            pointer-events: none;
+            transform-origin: bottom center;
+            animation: sway 4s ease-in-out infinite alternate;
+        }
+
+        /* Rumput di bawah (Lapis Depan) */
+        .grass-bg-front {
+            position: absolute;
+            bottom: 0;
+            width: 120%;
+            left: -10%;
+            height: 8vh;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M0,100 L0,50 Q4,20 8,60 Q12,30 16,70 Q20,25 24,65 Q28,40 32,80 Q36,20 40,60 Q44,45 48,85 Q52,30 56,70 Q60,15 64,55 Q68,40 72,80 Q76,25 80,65 Q84,35 88,75 Q92,20 96,60 L100,100 Z' fill='%2315803d'/%3E%3C/svg%3E");
+            background-size: 60px 100%;
+            background-repeat: repeat-x;
+            background-position: bottom;
+            z-index: 55;
+            pointer-events: none;
+            transform-origin: bottom center;
+            animation: sway-front 3s ease-in-out infinite alternate;
+        }
+
+        /* Overlay Air di bagian bawah rumput */
+        .water-overlay {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 5vh;
+            background: linear-gradient(to top, rgba(47, 128, 237, 0.9), rgba(47, 128, 237, 0));
+            z-index: 60;
+            pointer-events: none;
+        }
+
+        @keyframes sway { 0% { transform: skewX(-4deg); } 100% { transform: skewX(4deg); } }
+        @keyframes sway-front { 0% { transform: skewX(-6deg); } 100% { transform: skewX(6deg); } }
+
+        /* Animasi Transisi Teks Soal */
+        .fade-enter { opacity: 0; transform: translateY(-20px); transition: opacity 0.4s, transform 0.4s; }
+        .fade-enter-active { opacity: 1; transform: translateY(0); }
+        .fade-exit { opacity: 1; transform: translateY(0); transition: opacity 0.3s, transform 0.3s; }
+        .fade-exit-active { opacity: 0; transform: translateY(20px); }
+
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        
+        <!-- Layar Mulai - Tampil di tengah -->
+        <div id="screen-start" class="absolute inset-0 flex items-center justify-center z-[100] bg-black/50 p-4 backdrop-blur-sm">
+            <div class="modal-container bg-white p-6 rounded-3xl text-center shadow-2xl flex flex-col items-center">
+                <h1 class="text-2xl font-extrabold text-blue-600 mb-1">Tafrihatul Wildan</h1>
+                <p class="text-gray-500 font-bold text-sm mb-4">Syarah Awamil (100 Amil Nahwu)</p>
+                
+                <!-- Katak Logo -->
+                <svg width="70" height="70" viewBox="0 0 100 100" class="mb-4">
+                    <ellipse cx="50" cy="60" rx="35" ry="25" fill="#4ade80" stroke="#166534" stroke-width="4"/>
+                    <circle cx="30" cy="35" r="13" fill="#4ade80" stroke="#166534" stroke-width="4"/>
+                    <circle cx="30" cy="35" r="7" fill="white"/><circle cx="30" cy="33" r="3" fill="black"/>
+                    <circle cx="70" cy="35" r="13" fill="#4ade80" stroke="#166534" stroke-width="4"/>
+                    <circle cx="70" cy="35" r="7" fill="white"/><circle cx="70" cy="33" r="3" fill="black"/>
+                    <path d="M 40 55 Q 50 65 60 55" fill="none" stroke="#166534" stroke-width="4" stroke-linecap="round"/>
+                </svg>
+
+                <p class="text-xs text-gray-500 mb-6">Bantu katak melompat ke jawaban yang benar!</p>
+
+                <button id="btn-start" class="w-full py-4 bg-green-500 hover:bg-green-600 rounded-2xl text-white text-xl font-bold shadow-lg shadow-green-200 transform transition active:scale-95 mb-3">
+                    MULAI
+                </button>
+
+                <a href="https://fkdtdukuhturi.web.id" target="_blank" class="text-xs text-gray-400 hover:text-blue-500 transition-colors font-semibold">
+                    created by fkdtdukuhturi.web.id
+                </a>
+            </div>
+        </div>
+
+        <!-- HUD (Header) -->
+        <div class="absolute top-0 w-full flex justify-between items-start px-4 py-4 z-30">
+            <!-- Icon Audio -->
+            <button id="btn-audio" class="bg-white/20 border-2 border-white/40 rounded-full w-10 h-10 flex items-center justify-center text-white cursor-pointer hover:bg-white/40 transition-all">
+                <svg id="icon-audio-on" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5 10v4a2 2 0 002 2h2.286l3.714 3.714V4.286L9.286 8H7a2 2 0 00-2 2z"></path></svg>
+                <svg id="icon-audio-off" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h2.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>
+            </button>
+
+            <!-- Score -->
+            <div class="bg-black/20 px-6 py-2 rounded-xl text-white font-bold flex items-center gap-2">
+                Skor: <span id="score-display" class="text-xl text-yellow-300">0</span>
+            </div>
+        </div>
+
+        <!-- Area Gameplay Utama -->
+        <div id="game-area" class="absolute top-[20%] w-full flex flex-col items-center justify-start h-[60%] z-20 px-4 hidden">
+            
+            <!-- Pertanyaan -->
+            <div id="q-container" class="w-full max-w-3xl text-center mb-8 fade-enter-active">
+                <p id="q-counter" class="text-blue-200 font-bold mb-2">Soal 1/20</p>
+                <h2 id="question-text" class="text-2xl md:text-3xl font-extrabold text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)] leading-tight">
+                    Memuat soal...
+                </h2>
+            </div>
+
+            <!-- Pilihan Jawaban -->
+            <div id="pads-wrapper" class="flex flex-wrap justify-center gap-4 md:gap-8 w-full max-w-4xl fade-enter-active mt-4">
+                <!-- Pads digenerate via JS -->
+            </div>
+
+        </div>
+
+        <!-- Latar Belakang Rumput Bawah -->
+        <div class="grass-bg"></div>
+        <div class="grass-bg-front"></div>
+        <div class="water-overlay"></div>
+
+        <!-- Titik Pusat Start Katak -->
+        <div id="start-platform" class="absolute bottom-[5%] left-1/2 transform -translate-x-1/2 w-[100px] h-[30px] bg-green-900 bg-opacity-40 rounded-[100%] blur-[4px] z-[45]"></div>
+
+        <!-- Katak Karakter -->
+        <div id="frog" class="transition-transform z-50 opacity-0">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <!-- Kaki Belakang -->
+                <path d="M 20 75 Q 0 75 5 95 Q 25 95 30 80" fill="#22c55e" stroke="#166534" stroke-width="3"/>
+                <path d="M 80 75 Q 100 75 95 95 Q 75 95 70 80" fill="#22c55e" stroke="#166534" stroke-width="3"/>
+                <!-- Badan -->
+                <ellipse cx="50" cy="65" rx="35" ry="25" fill="#4ade80" stroke="#166534" stroke-width="3"/>
+                <!-- Mata Kiri -->
+                <circle cx="30" cy="40" r="15" fill="#4ade80" stroke="#166534" stroke-width="3"/>
+                <circle cx="30" cy="40" r="8" fill="white"/>
+                <circle cx="30" cy="38" r="4" fill="black"/>
+                <!-- Mata Kanan -->
+                <circle cx="70" cy="40" r="15" fill="#4ade80" stroke="#166534" stroke-width="3"/>
+                <circle cx="70" cy="40" r="8" fill="white"/>
+                <circle cx="70" cy="38" r="4" fill="black"/>
+                <!-- Mulut -->
+                <path d="M 40 60 Q 50 68 60 60" fill="none" stroke="#166534" stroke-width="3" stroke-linecap="round"/>
+                <!-- Perut Putih -->
+                <ellipse cx="50" cy="72" rx="15" ry="8" fill="#bef264" opacity="0.8"/>
+            </svg>
+        </div>
+
+        <!-- Layar Game Over -->
+        <div id="screen-gameover" class="absolute inset-0 flex items-center justify-center z-[100] bg-black/60 p-4 backdrop-blur-sm hidden">
+            <div class="modal-container bg-white p-8 rounded-3xl text-center shadow-2xl flex flex-col items-center">
+                <h2 class="text-4xl font-extrabold text-red-500 mb-2">Byuur!</h2>
+                <p class="text-gray-600 font-bold mb-6">Katak tercebur ke air. Jawaban salah.</p>
+                <div class="bg-blue-50 w-full rounded-2xl p-6 mb-6 border-2 border-blue-100">
+                    <p class="text-gray-500 font-bold uppercase text-sm">Skor Akhir</p>
+                    <p id="go-score" class="text-5xl font-extrabold text-blue-600 my-2">0</p>
+                </div>
+                <button id="btn-restart" class="w-full py-4 bg-blue-500 hover:bg-blue-600 rounded-full text-white text-xl font-bold shadow-lg transform transition active:scale-95">COBA LAGI</button>
+            </div>
+        </div>
+
+        <!-- Layar Menang -->
+        <div id="screen-win" class="absolute inset-0 flex items-center justify-center z-[100] bg-black/60 p-4 backdrop-blur-sm hidden">
+            <div class="modal-container bg-white p-8 rounded-3xl text-center shadow-2xl flex flex-col items-center">
+                <h2 class="text-4xl font-extrabold text-yellow-500 mb-2">Luar Biasa!</h2>
+                <p class="text-gray-600 font-bold mb-6">Kamu menguasai Kitab Awamil!</p>
+                <div class="bg-yellow-50 w-full rounded-2xl p-6 mb-6 border-2 border-yellow-100">
+                    <p class="text-gray-500 font-bold uppercase text-sm">Skor Akhir</p>
+                    <p id="win-score" class="text-5xl font-extrabold text-yellow-600 my-2">0</p>
+                </div>
+                <button id="btn-win-restart" class="w-full py-4 bg-yellow-500 hover:bg-yellow-600 rounded-full text-white text-xl font-bold shadow-lg transform transition active:scale-95">MAIN LAGI</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- BANK SOAL KITAB TAFRIHATUL WILDAN (AWAMIL NAHWU) ---
+        const questionBank = [
+            { q: "Berapakah jumlah keseluruhan Amil (Lafdzi & Ma'nawi)?", options: ["100 Amil", "91 Amil", "7 Amil", "2 Amil"], ans: 0 },
+            { q: "Berapakah jumlah Amil Lafdzi Sama'iyyah?", options: ["91 Amil", "100 Amil", "7 Amil", "13 Amil"], ans: 0 },
+            { q: "Lafal مِنْ, اِلَى, عَنْ, عَلَى termasuk kelompok...", options: ["Huruf Jar", "Huruf Nashob", "Huruf Jazem", "Fi'il Nawasikh"], ans: 0 },
+            { q: "Amalan dari bab اِنَّ وَ اَخَوَاتِهَا adalah...", options: ["Menashobkan Isim & Merofa'kan Khobar", "Merofa'kan Isim & Menashobkan Khobar", "Mengejarkan Isim & Khobar", "Menjazemkan Fi'il"], ans: 0 },
+            { q: "Lafal يَا, هَيَا, أَيَا termasuk kelompok...", options: ["Huruf Nida'", "Huruf Ma'iyah", "Huruf Istisna'", "Huruf Jar"], ans: 0 },
+            { q: "Huruf اَنْ, لَنْ, كَىْ, اِذَنْ bertugas untuk...", options: ["Menashobkan Fi'il Mudhori'", "Menjazemkan Fi'il Mudhori'", "Mengejarkan Isim", "Merofa'kan Mubtada'"], ans: 0 },
+            { q: "Lafal لَمْ, لَمَّا, لَامُ الْاَمْرِ bertugas untuk...", options: ["Menjazemkan 1 Fi'il Mudhori'", "Menjazemkan 2 Fi'il Mudhori'", "Menashobkan Fi'il Mudhori'", "Merofa'kan Fi'il"], ans: 0 },
+            { q: "Isim syarat seperti مَنْ, مَا, أَيٌّ menjazemkan berapa fi'il?", options: ["Dua Fi'il", "Satu Fi'il", "Tiga Fi'il", "Tidak Menjazemkan"], ans: 0 },
+            { q: "Isim bilangan 11-99 menashobkan isim sesudahnya sebagai...", options: ["Tamyiz", "Maf'ul Bih", "Fa'il", "Khobar"], ans: 0 },
+            { q: "Lafal بَلْهَ dan رُوَيْدَ termasuk kelompok...", options: ["Isim Fi'il Amar", "Isim Fi'il Madhi", "Af'alul Qulub", "Fi'il Muqorobah"], ans: 0 },
+            { q: "Amalan dari كَانَ وَ اَخَوَاتِهَا (Af'al Nawasikh) adalah...", options: ["Merofa'kan Isim & Menashobkan Khobar", "Menashobkan Isim & Merofa'kan Khobar", "Menashobkan Keduanya", "Mengejarkan Keduanya"], ans: 0 },
+            { q: "Lafal عَسَى (Mudah-mudahan) termasuk kategori...", options: ["Fi'il Raja' (Harapan)", "Fi'il Dzam (Celaan)", "Fi'il Syak (Keraguan)", "Fi'il Yakin"], ans: 0 },
+            { q: "Fi'il yang dikhususkan untuk MEMUJI adalah...", options: ["نِعْمَ dan حَبَّذَا", "بِئْسَ dan سَاءَ", "كَانَ dan صَارَ", "عَسَى dan كَادَ"], ans: 0 },
+            { q: "Lafal ظَنَّ, حَسِبَ, خَالَ bermakna...", options: ["Syak (Sangkaan)", "Yaqiin (Keyakinan)", "Raja' (Harapan)", "Dzam (Celaan)"], ans: 0 },
+            { q: "Amalan bab ظَنَّ وَاَخَوَاتِهَا (Af'alul Qulub) adalah...", options: ["Menashobkan Mubtada' & Khobar", "Merofa'kan Mubtada' & Khobar", "Mengejarkan Isim", "Menjazemkan Fi'il"], ans: 0 },
+            { q: "Berapakah jumlah Amil Qiyasiyah?", options: ["7 Amil", "2 Amil", "91 Amil", "13 Amil"], ans: 0 },
+            { q: "Manakah yang BUKAN termasuk Amil Qiyasiyah?", options: ["Huruf Jar", "Isim Fa'il", "Isim Maf'ul", "Isim Masdar"], ans: 0 },
+            { q: "Berapakah jumlah Amil Ma'nawiyyah?", options: ["2 Amil", "7 Amil", "91 Amil", "100 Amil"], ans: 0 },
+            { q: "Amil abstrak yang bertugas merofa'kan mubtada' disebut...", options: ["Amil Ibtida'", "Amil Qiyasi", "Amil Lafdzi", "Amil Nawasikh"], ans: 0 },
+            { q: "Lafal مَا, لَا, اِنْ, dan لَاتَ beramal menashobkan khobar dengan...", options: ["3 Syarat", "1 Syarat", "2 Syarat", "Tanpa Syarat"], ans: 0 }
+        ];
+
+        // --- Variabel Permainan ---
+        let currentQuestions = [];
+        let currentQIndex = 0;
+        let score = 0;
+        let isAnimating = false;
+        let isAudioEnabled = true;
+
+        // --- DOM Elements ---
+        const elStart = document.getElementById('screen-start');
+        const elGameOver = document.getElementById('screen-gameover');
+        const elWin = document.getElementById('screen-win');
+        const elGameArea = document.getElementById('game-area');
+        const elQContainer = document.getElementById('q-container');
+        const elQText = document.getElementById('question-text');
+        const elQCounter = document.getElementById('q-counter');
+        const elPadsWrapper = document.getElementById('pads-wrapper');
+        const elScore = document.getElementById('score-display');
+        const elFrog = document.getElementById('frog');
+        const elStartPad = document.getElementById('start-platform');
+
+        // --- Sistem Audio Sintetis ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playTone(type) {
+            if(!isAudioEnabled) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            if(type === 'jump') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.2);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.2);
+                osc.start(now); osc.stop(now + 0.2);
+            } else if (type === 'correct') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.setValueAtTime(659.25, now + 0.1);
+                osc.frequency.setValueAtTime(783.99, now + 0.2);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.4);
+                osc.start(now); osc.stop(now + 0.4);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.linearRampToValueAtTime(100, now + 0.4);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.4);
+                osc.start(now); osc.stop(now + 0.4);
+                setTimeout(() => playTone('splash'), 200);
+            } else if (type === 'splash') {
+                const bufferSize = audioCtx.sampleRate * 0.3;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass'; filter.frequency.value = 800;
+                
+                const noiseGain = audioCtx.createGain();
+                noiseGain.gain.setValueAtTime(0.4, now);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                
+                noise.connect(filter); filter.connect(noiseGain); noiseGain.connect(audioCtx.destination);
+                noise.start(now);
+            }
+        }
+
+        // --- Logika Permainan ---
+        function startGame() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            // Acak soal
+            currentQuestions = [...questionBank].sort(() => Math.random() - 0.5);
+            currentQIndex = 0;
+            score = 0;
+            updateScore();
+            
+            // Sembunyikan semua layar modal & Munculkan area bermain
+            elStart.classList.add('hidden');
+            elGameOver.classList.add('hidden');
+            elWin.classList.add('hidden');
+            elGameArea.classList.remove('hidden');
+            
+            resetFrogToHome();
+            loadQuestion();
+        }
+
+        function resetFrogToHome() {
+            // Hapus animasi sisa (agar katak tidak nyangkut saat di-restart)
+            elFrog.getAnimations().forEach(anim => anim.cancel());
+
+            // Hitung posisi tengah bawah
+            const rect = elStartPad.getBoundingClientRect();
+            const startX = rect.left + rect.width/2 - 35; // 35 adalah setengah lebar katak
+            const startY = rect.top - 50; 
+            
+            elFrog.style.transform = `translate(${startX}px, ${startY}px) rotate(0deg)`;
+            elFrog.style.opacity = '1';
+        }
+
+        // Jika layar di-resize, kembalikan posisi katak agar tidak melayang
+        window.addEventListener('resize', () => {
+            if(!isAnimating && elStart.classList.contains('hidden')) {
+                resetFrogToHome();
+            }
+        });
+
+        function loadQuestion() {
+            if (currentQIndex >= currentQuestions.length) {
+                showWin();
+                return;
+            }
+
+            // Animasi memudar sebelum soal baru muncul
+            elQContainer.classList.remove('fade-enter-active');
+            elPadsWrapper.classList.remove('fade-enter-active');
+            elQContainer.classList.add('fade-exit-active');
+            elPadsWrapper.classList.add('fade-exit-active');
+
+            setTimeout(() => {
+                const qData = currentQuestions[currentQIndex];
+                elQCounter.textContent = `Soal ${currentQIndex + 1}/${currentQuestions.length}`;
+                elQText.textContent = qData.q;
+                
+                // Acak opsi jawaban
+                let optionsWithIndex = qData.options.map((opt, i) => ({text: opt, isCorrect: i === qData.ans}));
+                optionsWithIndex.sort(() => Math.random() - 0.5);
+
+                elPadsWrapper.innerHTML = '';
+                optionsWithIndex.forEach((opt) => {
+                    const btn = document.createElement('div');
+                    btn.className = 'lily-pad';
+                    btn.textContent = opt.text;
+                    btn.onclick = () => handleAnswer(btn, opt.isCorrect);
+                    elPadsWrapper.appendChild(btn);
+                });
+
+                // Munculkan soal baru
+                elQContainer.classList.remove('fade-exit-active');
+                elPadsWrapper.classList.remove('fade-exit-active');
+                elQContainer.classList.add('fade-enter');
+                elPadsWrapper.classList.add('fade-enter');
+                
+                void elQContainer.offsetWidth; // trigger reflow
+                
+                elQContainer.classList.add('fade-enter-active');
+                elPadsWrapper.classList.add('fade-enter-active');
+                
+                isAnimating = false;
+
+            }, 300);
+        }
+
+        function handleAnswer(targetPad, isCorrect) {
+            if (isAnimating) return;
+            isAnimating = true;
+            playTone('jump');
+
+            const frogRect = elFrog.getBoundingClientRect();
+            const targetRect = targetPad.getBoundingClientRect();
+
+            // Kalkulasi posisi lompatan
+            const currentTransform = getComputedStyle(elFrog).transform;
+            let startX = 0, startY = 0;
+            if(currentTransform !== 'none') {
+                const matrix = currentTransform.match(/matrix.*\((.+)\)/)[1].split(', ');
+                startX = parseFloat(matrix[4]);
+                startY = parseFloat(matrix[5]);
+            } else {
+                 startX = frogRect.left;
+                 startY = frogRect.top;
+            }
+
+            const endX = targetRect.left + (targetRect.width / 2) - 35;
+            const endY = targetRect.top - 40;
+
+            // Efek Lompat Melengkung (Parabola)
+            const jumpAnim = elFrog.animate([
+                { transform: `translate(${startX}px, ${startY}px) scale(1)` },
+                { transform: `translate(${(startX + endX) / 2}px, ${Math.min(startY, endY) - 100}px) scale(1.2)` },
+                { transform: `translate(${endX}px, ${endY}px) scale(1)` }
+            ], {
+                duration: 400,
+                easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+                fill: 'forwards'
+            });
+
+            jumpAnim.onfinish = () => {
+                elFrog.style.transform = `translate(${endX}px, ${endY}px)`;
+                
+                if (isCorrect) {
+                    targetPad.classList.add('correct');
+                    playTone('correct');
+                    score += 10;
+                    updateScore();
+                    
+                    // Jika benar, katak melompat kembali ke bawah
+                    setTimeout(() => returnFrogToHomeAndNext(), 800);
+
+                } else {
+                    targetPad.classList.add('wrong');
+                    playTone('wrong');
+                    
+                    // Efek Katak Tenggelam
+                    const sinkAnim = elFrog.animate([
+                        { transform: `translate(${endX}px, ${endY}px) rotate(0deg)`, opacity: 1 },
+                        { transform: `translate(${endX}px, ${endY + 50}px) rotate(90deg)`, opacity: 0 }
+                    ], { duration: 600, fill: 'forwards', easing: 'ease-in' });
+
+                    sinkAnim.onfinish = () => showGameOver();
+                }
+            };
+        }
+
+        function returnFrogToHomeAndNext() {
+            const currentTransform = getComputedStyle(elFrog).transform;
+            const matrix = currentTransform.match(/matrix.*\((.+)\)/)[1].split(', ');
+            const startX = parseFloat(matrix[4]);
+            const startY = parseFloat(matrix[5]);
+
+            const rect = elStartPad.getBoundingClientRect();
+            const endX = rect.left + rect.width/2 - 35;
+            const endY = rect.top - 50;
+
+            const jumpAnim = elFrog.animate([
+                { transform: `translate(${startX}px, ${startY}px)` },
+                { transform: `translate(${(startX + endX) / 2}px, ${Math.min(startY, endY) - 50}px)` },
+                { transform: `translate(${endX}px, ${endY}px)` }
+            ], { duration: 300, easing: 'ease-in-out', fill: 'forwards' });
+
+            jumpAnim.onfinish = () => {
+                elFrog.style.transform = `translate(${endX}px, ${endY}px)`;
+                currentQIndex++;
+                loadQuestion();
+            }
+        }
+
+        function updateScore() { elScore.textContent = score; }
+
+        function showGameOver() {
+            elGameArea.classList.add('hidden');
+            elGameOver.classList.remove('hidden');
+            document.getElementById('go-score').textContent = score;
+        }
+
+        function showWin() {
+            elGameArea.classList.add('hidden');
+            elWin.classList.remove('hidden');
+            document.getElementById('win-score').textContent = score;
+        }
+
+        // --- Event Listener Tombol ---
+        document.getElementById('btn-start').addEventListener('click', startGame);
+        document.getElementById('btn-restart').addEventListener('click', startGame);
+        document.getElementById('btn-win-restart').addEventListener('click', startGame);
+
+        // --- Toggle Suara ---
+        const iconOn = document.getElementById('icon-audio-on');
+        const iconOff = document.getElementById('icon-audio-off');
+        document.getElementById('btn-audio').addEventListener('click', () => {
+            isAudioEnabled = !isAudioEnabled;
+            iconOn.classList.toggle('hidden', !isAudioEnabled);
+            iconOff.classList.toggle('hidden', isAudioEnabled);
+        });
+
+    </script>
+</body>
+</html>
