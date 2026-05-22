@@ -191,11 +191,27 @@
 
         <!-- HUD (Header) -->
         <div class="absolute top-0 w-full flex justify-between items-start px-4 py-4 z-30">
-            <!-- Icon Audio -->
-            <button id="btn-audio" class="bg-white/20 border-2 border-white/40 rounded-full w-10 h-10 flex items-center justify-center text-white cursor-pointer hover:bg-white/40 transition-all">
-                <svg id="icon-audio-on" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5 10v4a2 2 0 002 2h2.286l3.714 3.714V4.286L9.286 8H7a2 2 0 00-2 2z"></path></svg>
-                <svg id="icon-audio-off" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h2.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>
-            </button>
+            <!-- Icon Audio Container -->
+            <div class="flex gap-2">
+                <!-- Tombol SFX (Efek Suara) -->
+                <button id="btn-sfx" class="bg-white/20 border-2 border-white/40 rounded-full w-10 h-10 flex items-center justify-center text-white cursor-pointer hover:bg-white/40 transition-all" title="Efek Suara">
+                    <svg id="icon-sfx-on" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5 10v4a2 2 0 002 2h2.286l3.714 3.714V4.286L9.286 8H7a2 2 0 00-2 2z"></path></svg>
+                    <svg id="icon-sfx-off" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h2.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>
+                </button>
+                
+                <!-- Tombol BGM (Suara Hujan) -->
+                <button id="btn-bgm" class="bg-white/20 border-2 border-white/40 rounded-full w-10 h-10 flex items-center justify-center text-white cursor-pointer hover:bg-white/40 transition-all" title="Suara Hujan">
+                    <svg id="icon-bgm-on" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18v2m-4-2v2m8-2v2"></path>
+                    </svg>
+                    <svg id="icon-bgm-off" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18v2m-4-2v2m8-2v2"></path>
+                        <line x1="3" y1="3" x2="21" y2="21" stroke-width="2" stroke-linecap="round"></line>
+                    </svg>
+                </button>
+            </div>
 
             <!-- Score -->
             <div class="bg-black/20 px-4 py-2 rounded-xl text-white font-bold flex items-center gap-4">
@@ -315,7 +331,8 @@
         let currentQIndex = 0;
         let score = 0;
         let isAnimating = false;
-        let isAudioEnabled = true;
+        let isSfxEnabled = true;
+        let isBgmEnabled = true;
 
         // --- DOM Elements ---
         const elStart = document.getElementById('screen-start');
@@ -337,7 +354,7 @@
         let bgmRainNode = null;
 
         function playTone(type) {
-            if(!isAudioEnabled) return;
+            if(!isSfxEnabled) return;
             if (audioCtx.state === 'suspended') audioCtx.resume();
             
             const osc = audioCtx.createOscillator();
@@ -387,7 +404,7 @@
 
         // Fungsi BGM Hujan
         function startBGM() {
-            if (!isAudioEnabled) return;
+            if (!isBgmEnabled) return;
             
             // Sintesis Hujan (Continuous Low-pass noise)
             if (!bgmRainNode) {
@@ -603,16 +620,27 @@
             if (e.key === 'Enter') startGame();
         });
 
-        // --- Toggle Suara ---
-        const iconOn = document.getElementById('icon-audio-on');
-        const iconOff = document.getElementById('icon-audio-off');
-        document.getElementById('btn-audio').addEventListener('click', () => {
-            isAudioEnabled = !isAudioEnabled;
-            iconOn.classList.toggle('hidden', !isAudioEnabled);
-            iconOff.classList.toggle('hidden', isAudioEnabled);
+        // --- Toggle Suara (SFX & BGM) ---
+        const btnSfx = document.getElementById('btn-sfx');
+        const iconSfxOn = document.getElementById('icon-sfx-on');
+        const iconSfxOff = document.getElementById('icon-sfx-off');
+
+        btnSfx.addEventListener('click', () => {
+            isSfxEnabled = !isSfxEnabled;
+            iconSfxOn.classList.toggle('hidden', !isSfxEnabled);
+            iconSfxOff.classList.toggle('hidden', isSfxEnabled);
+        });
+
+        const btnBgm = document.getElementById('btn-bgm');
+        const iconBgmOn = document.getElementById('icon-bgm-on');
+        const iconBgmOff = document.getElementById('icon-bgm-off');
+
+        btnBgm.addEventListener('click', () => {
+            isBgmEnabled = !isBgmEnabled;
+            iconBgmOn.classList.toggle('hidden', !isBgmEnabled);
+            iconBgmOff.classList.toggle('hidden', isBgmEnabled);
             
-            // Toggle BGM Hujan dan Katak
-            if (isAudioEnabled && !elGameArea.classList.contains('hidden')) {
+            if (isBgmEnabled && !elGameArea.classList.contains('hidden')) {
                 startBGM();
             } else {
                 stopBGM();
