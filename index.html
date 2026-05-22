@@ -171,6 +171,12 @@
                     <path d="M 40 55 Q 50 65 60 55" fill="none" stroke="#166534" stroke-width="4" stroke-linecap="round"/>
                 </svg>
 
+                <div class="w-full text-left mb-4">
+                    <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Nama Singkat Santri</label>
+                    <input type="text" id="input-player-name" maxlength="12" placeholder="Tulis namamu disini..." 
+                           class="w-full px-4 py-3 bg-gray-100 border-2 border-gray-200 rounded-xl text-center font-bold text-gray-700 focus:outline-none focus:border-blue-500">
+                </div>
+
                 <p class="text-xs text-gray-500 mb-6">Bantu katak melompat ke jawaban yang benar!</p>
 
                 <button id="btn-start" class="w-full py-4 bg-green-500 hover:bg-green-600 rounded-2xl text-white text-xl font-bold shadow-lg shadow-green-200 transform transition active:scale-95 mb-3">
@@ -192,8 +198,9 @@
             </button>
 
             <!-- Score -->
-            <div class="bg-black/20 px-6 py-2 rounded-xl text-white font-bold flex items-center gap-2">
-                Skor: <span id="score-display" class="text-xl text-yellow-300">0</span>
+            <div class="bg-black/20 px-4 py-2 rounded-xl text-white font-bold flex items-center gap-4">
+                <span id="player-name-display" class="text-sm border-r border-white/30 pr-4">Santri 1</span>
+                <span>Skor: <span id="score-display" class="text-xl text-yellow-300">0</span></span>
             </div>
         </div>
 
@@ -322,10 +329,13 @@
         const elScore = document.getElementById('score-display');
         const elFrog = document.getElementById('frog');
         const elStartPad = document.getElementById('start-platform');
+        const elInputPlayerName = document.getElementById('input-player-name');
+        const elPlayerNameDisplay = document.getElementById('player-name-display');
 
-        // --- Sistem Audio Sintetis ---
+        // --- Sistem Audio Sintetis & BGM ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
+        let bgmRainNode = null;
+
         function playTone(type) {
             if(!isAudioEnabled) return;
             if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -365,23 +375,60 @@
                 for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
                 const noise = audioCtx.createBufferSource();
                 noise.buffer = buffer;
-                
                 const filter = audioCtx.createBiquadFilter();
                 filter.type = 'lowpass'; filter.frequency.value = 800;
-                
                 const noiseGain = audioCtx.createGain();
                 noiseGain.gain.setValueAtTime(0.4, now);
                 noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-                
                 noise.connect(filter); filter.connect(noiseGain); noiseGain.connect(audioCtx.destination);
                 noise.start(now);
             }
+        }
+
+        // Fungsi BGM Hujan
+        function startBGM() {
+            if (!isAudioEnabled) return;
+            
+            // Sintesis Hujan (Continuous Low-pass noise)
+            if (!bgmRainNode) {
+                const bufferSize = audioCtx.sampleRate * 2;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * 0.5;
+                
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                noise.loop = true;
+
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 400; // Frekuensi diredam agar terdengar seperti hujan
+
+                bgmRainNode = audioCtx.createGain();
+                bgmRainNode.gain.value = 0.8; // Volume hujan dikeraskan (sebelumnya 0.2)
+
+                noise.connect(filter);
+                filter.connect(bgmRainNode);
+                bgmRainNode.connect(audioCtx.destination);
+                noise.start();
+            } else {
+                bgmRainNode.gain.value = 0.8; // Volume hujan dikeraskan
+            }
+        }
+
+        function stopBGM() {
+            if (bgmRainNode) bgmRainNode.gain.value = 0;
         }
 
         // --- Logika Permainan ---
         function startGame() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
             
+            // Set Player Name
+            let playerName = elInputPlayerName.value.trim();
+            if (playerName === "") playerName = "Santri 1";
+            elPlayerNameDisplay.textContent = playerName;
+
             // Acak soal
             currentQuestions = [...questionBank].sort(() => Math.random() - 0.5);
             currentQIndex = 0;
@@ -396,22 +443,18 @@
             
             resetFrogToHome();
             loadQuestion();
+            startBGM(); // Mulai BGM saat main
         }
 
         function resetFrogToHome() {
-            // Hapus animasi sisa (agar katak tidak nyangkut saat di-restart)
             elFrog.getAnimations().forEach(anim => anim.cancel());
-
-            // Hitung posisi tengah bawah
             const rect = elStartPad.getBoundingClientRect();
-            const startX = rect.left + rect.width/2 - 35; // 35 adalah setengah lebar katak
+            const startX = rect.left + rect.width/2 - 35;
             const startY = rect.top - 50; 
-            
             elFrog.style.transform = `translate(${startX}px, ${startY}px) rotate(0deg)`;
             elFrog.style.opacity = '1';
         }
 
-        // Jika layar di-resize, kembalikan posisi katak agar tidak melayang
         window.addEventListener('resize', () => {
             if(!isAnimating && elStart.classList.contains('hidden')) {
                 resetFrogToHome();
@@ -424,7 +467,6 @@
                 return;
             }
 
-            // Animasi memudar sebelum soal baru muncul
             elQContainer.classList.remove('fade-enter-active');
             elPadsWrapper.classList.remove('fade-enter-active');
             elQContainer.classList.add('fade-exit-active');
@@ -435,7 +477,6 @@
                 elQCounter.textContent = `Soal ${currentQIndex + 1}/${currentQuestions.length}`;
                 elQText.textContent = qData.q;
                 
-                // Acak opsi jawaban
                 let optionsWithIndex = qData.options.map((opt, i) => ({text: opt, isCorrect: i === qData.ans}));
                 optionsWithIndex.sort(() => Math.random() - 0.5);
 
@@ -448,19 +489,17 @@
                     elPadsWrapper.appendChild(btn);
                 });
 
-                // Munculkan soal baru
                 elQContainer.classList.remove('fade-exit-active');
                 elPadsWrapper.classList.remove('fade-exit-active');
                 elQContainer.classList.add('fade-enter');
                 elPadsWrapper.classList.add('fade-enter');
                 
-                void elQContainer.offsetWidth; // trigger reflow
+                void elQContainer.offsetWidth; 
                 
                 elQContainer.classList.add('fade-enter-active');
                 elPadsWrapper.classList.add('fade-enter-active');
                 
                 isAnimating = false;
-
             }, 300);
         }
 
@@ -472,7 +511,6 @@
             const frogRect = elFrog.getBoundingClientRect();
             const targetRect = targetPad.getBoundingClientRect();
 
-            // Kalkulasi posisi lompatan
             const currentTransform = getComputedStyle(elFrog).transform;
             let startX = 0, startY = 0;
             if(currentTransform !== 'none') {
@@ -487,16 +525,11 @@
             const endX = targetRect.left + (targetRect.width / 2) - 35;
             const endY = targetRect.top - 40;
 
-            // Efek Lompat Melengkung (Parabola)
             const jumpAnim = elFrog.animate([
                 { transform: `translate(${startX}px, ${startY}px) scale(1)` },
                 { transform: `translate(${(startX + endX) / 2}px, ${Math.min(startY, endY) - 100}px) scale(1.2)` },
                 { transform: `translate(${endX}px, ${endY}px) scale(1)` }
-            ], {
-                duration: 400,
-                easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
-                fill: 'forwards'
-            });
+            ], { duration: 400, easing: 'cubic-bezier(0.25, 1, 0.5, 1)', fill: 'forwards' });
 
             jumpAnim.onfinish = () => {
                 elFrog.style.transform = `translate(${endX}px, ${endY}px)`;
@@ -506,15 +539,11 @@
                     playTone('correct');
                     score += 10;
                     updateScore();
-                    
-                    // Jika benar, katak melompat kembali ke bawah
                     setTimeout(() => returnFrogToHomeAndNext(), 800);
-
                 } else {
                     targetPad.classList.add('wrong');
                     playTone('wrong');
                     
-                    // Efek Katak Tenggelam
                     const sinkAnim = elFrog.animate([
                         { transform: `translate(${endX}px, ${endY}px) rotate(0deg)`, opacity: 1 },
                         { transform: `translate(${endX}px, ${endY + 50}px) rotate(90deg)`, opacity: 0 }
@@ -554,18 +583,25 @@
             elGameArea.classList.add('hidden');
             elGameOver.classList.remove('hidden');
             document.getElementById('go-score').textContent = score;
+            stopBGM(); // Matikan BGM saat game over
         }
 
         function showWin() {
             elGameArea.classList.add('hidden');
             elWin.classList.remove('hidden');
             document.getElementById('win-score').textContent = score;
+            stopBGM(); // Matikan BGM saat menang
         }
 
         // --- Event Listener Tombol ---
         document.getElementById('btn-start').addEventListener('click', startGame);
         document.getElementById('btn-restart').addEventListener('click', startGame);
         document.getElementById('btn-win-restart').addEventListener('click', startGame);
+        
+        // Input Enter
+        elInputPlayerName.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') startGame();
+        });
 
         // --- Toggle Suara ---
         const iconOn = document.getElementById('icon-audio-on');
@@ -574,6 +610,13 @@
             isAudioEnabled = !isAudioEnabled;
             iconOn.classList.toggle('hidden', !isAudioEnabled);
             iconOff.classList.toggle('hidden', isAudioEnabled);
+            
+            // Toggle BGM Hujan dan Katak
+            if (isAudioEnabled && !elGameArea.classList.contains('hidden')) {
+                startBGM();
+            } else {
+                stopBGM();
+            }
         });
 
     </script>
